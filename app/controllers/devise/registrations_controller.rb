@@ -1,6 +1,9 @@
 class Devise::RegistrationsController < DeviseController
-  prepend_before_filter :require_no_authentication, :only => [ :new, :create, :cancel ]
+# only admin can add so to sign up you must be logged in as admin
+#  prepend_before_filter :require_no_authentication, :only => [ :new, :create, :cancel ]
   prepend_before_filter :authenticate_scope!, :only => [:edit, :update, :destroy]
+  before_filter :user_admin?
+
 
   # GET /resource/sign_up
   def new
@@ -15,7 +18,8 @@ class Devise::RegistrationsController < DeviseController
     if resource.save
       if resource.active_for_authentication?
         set_flash_message :notice, :signed_up if is_navigational_format?
-        sign_up(resource_name, resource)
+# do not automatically sign in user after they sign up
+#        sign_up(resource_name, resource)
         respond_with resource, :location => after_sign_up_path_for(resource)
       else
         set_flash_message :notice, :"signed_up_but_#{resource.inactive_message}" if is_navigational_format?
@@ -116,4 +120,14 @@ class Devise::RegistrationsController < DeviseController
     send(:"authenticate_#{resource_name}!", :force => true)
     self.resource = send(:"current_#{resource_name}")
   end
+
+  private
+
+  def user_admin?
+    if current_user == nil ||  !current_user.admin
+       flash[:error] = "Access Denied"
+       redirect_to root_path
+    end
+   end
+
 end
